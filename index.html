@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Conferência de documentação</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.4/dist/umd/supabase.js"></script>
+<style>
+:root{--bg:#f4f6f5;--card:#fff;--tx:#17201c;--mut:#65726b;--bd:#dde3df;--ok:#18864b;--pend:#c2670a;--bad:#c62828;--trk:#e5eae7}
+@media (prefers-color-scheme:dark){:root{--bg:#121714;--card:#1b221e;--tx:#e8eeea;--mut:#9aa8a0;--bd:#2b352f;--ok:#3ecf7a;--pend:#f0a640;--bad:#ff7a70;--trk:#2b352f}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+main{max-width:820px;margin:0 auto;padding:16px 14px 60px}
+h1{font-size:1.25rem;margin:4px 0 12px}
+.top{background:var(--card);border:1px solid var(--bd);border-radius:10px;padding:16px;margin-bottom:12px}
+.big{font-size:2.6rem;font-weight:700;line-height:1;color:var(--ok)}
+.bar{height:10px;background:var(--trk);border-radius:6px;overflow:hidden;margin:8px 0 4px}
+.bar i{display:block;height:100%;background:var(--ok);transition:width .3s}
+.sub{color:var(--mut);font-size:.9rem}
+.pend{color:var(--pend);font-weight:600}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px;cursor:pointer;padding:12px 14px}
+.emp{background:var(--card);border:1px solid var(--bd);border-radius:10px;margin-bottom:10px}
+.in{padding:0 14px 10px}
+.dep{border-top:1px solid var(--bd)}
+.dep .row{padding:10px 0}
+.cc{margin:2px 0 6px 10px;padding-left:10px;border-left:3px solid var(--bd)}
+.cc .row{padding:8px 0}
+.item{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-top:1px solid var(--bd)}
+.item input{width:22px;height:22px;margin-top:1px;flex:none;accent-color:var(--ok)}
+.item.done .d{color:var(--mut);text-decoration:line-through}
+.who{display:block;font-size:.8rem;color:var(--mut)}
+.pct{font-weight:700;white-space:nowrap}
+.tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:4px}
+.tag{font-size:.75rem;border:1px solid var(--bd);border-radius:999px;padding:1px 8px;color:var(--mut)}
+.tag.w{color:var(--pend);border-color:var(--pend)}.tag.r{color:var(--bad);border-color:var(--bad)}
+.tools{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.tools .wide{grid-column:1/-1}
+select,input[type=search],.btn{font:inherit;color:var(--tx);background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:8px 10px;width:100%}
+.btn{cursor:pointer;text-align:left}
+label.f{display:flex;gap:8px;align-items:center}
+#msg{color:var(--bad);margin:8px 0}
+:focus-visible{outline:3px solid var(--ok);outline-offset:2px}
+</style>
+</head>
+<body>
+<main>
+<h1>Conferência de documentação</h1>
+<div id="msg"></div>
+<div class="tools">
+  <select id="comp" aria-label="Competência"></select>
+  <select id="filial" aria-label="Filial"><option value="">Todas as filiais</option></select>
+  <input class="wide" type="search" id="busca" placeholder="Buscar departamento (número ou nome)">
+  <label class="f"><input type="checkbox" id="onlyp"> Só pendentes</label>
+  <button class="btn" id="nome"></button>
+</div>
+<div id="app">Carregando…</div>
+</main>
+<script>
+const SUPABASE_URL = "https://rrohyqtokzbyfyujwycv.supabase.co";
+const SUPABASE_KEY = "sb_publishable_JrsS6GH0qEPPbWCS6duvvA_tIg9ToZD";
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+let E=[], D=[], C=[], I=[], CP=[], comp="", fil="", busca="", onlyP=false, nome="";
+const aberto = new Set();
+try { nome = localStorage.getItem("nome") || ""; } catch(e) {}
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const feitos = a => a.filter(i => i.conferido).length;
+const pct = a => a.length ? Math.round(100 * feitos(a) / a.length) : 0;
+const hoje = new Date(), mesAtual = String(hoje.getMonth()+1).padStart(2,"0")+"/"+hoje.getFullYear();
+
+async function todos(tabela, filtro){
+  let out=[], de=0;
+  for(;;){
+    let q = sb.from(tabela).select("*").order("id").range(de, de+999);
+    if (filtro) q = filtro(q);
+    const {data,error} = await q;
+    if (error) throw error;
+    out = out.concat(data); if (data.length < 1000) return out; de += 1000;
+  }
+}
+function resumo(a){
+  const f = feitos(a), p = a.length - f;
+  return `<div class="bar"><i style="width:${pct(a)}%"></i></div><div class="sub">${f} de ${a.length} conferidos · <span class="pend">${p} pendentes</span></div>`;
+}
+function itemHtml(i){
+  const q = i.conferido_em ? new Date(i.conferido_em).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}) : "";
+  const meta = [i.responsavel, i.observacao].filter(Boolean).map(esc).join(" · ");
+  const quem = i.conferido ? `Conferido por ${esc(i.conferido_por || "alguém")} em ${q}` : "";
+  return `<label class="item ${i.conferido ? "done" : ""}"><input type="checkbox" data-id="${i.id}" ${i.conferido ? "checked" : ""}>
+    <span><span class="d">${esc(i.descricao)}</span>${meta ? `<span class="who">${meta}</span>` : ""}${quem ? `<span class="who">${quem}</span>` : ""}</span></label>`;
+}
+function bloco(key, titulo, arr, corpo, cls, extra){
+  const ab = aberto.has(key);
+  return `<div class="${cls}"><div class="row" data-k="${key}"><div style="flex:1"><b>${esc(titulo)}</b>${extra||""}${resumo(arr)}</div><span class="pct">${pct(arr)}%</span></div>${ab ? `<div class="in">${corpo}</div>` : ""}</div>`;
+}
+function tags(d, pend){
+  let t = "";
+  if (d.prazo_dia) { const atras = comp===mesAtual && pend>0 && hoje.getDate()>d.prazo_dia; t += `<span class="tag ${atras?"r":""}">${atras?"Atrasado · ":""}Enviar até o dia ${d.prazo_dia}</span>`; }
+  if (d.filial) t += `<span class="tag">${esc(d.filial)}</span>`;
+  if (d.prioridade) t += `<span class="tag w">Prioridade</span>`;
+  if (d.interfere_faturamento) t += `<span class="tag w">Interfere no faturamento</span>`;
+  if (d.va_dinheiro) t += `<span class="tag">VA em dinheiro</span>`;
+  if (d.como_enviar) t += `<span class="tag">${esc(d.como_enviar)}</span>`;
+  return `<div class="tags">${t}</div>`;
+}
+function render(){
+  const q = busca.trim().toLowerCase();
+  const dep = D.filter(d => (!fil || d.filial===fil) && (!q || String(d.numero).includes(q) || d.nome.toLowerCase().includes(q)));
+  const ids = new Set(dep.map(d => d.id));
+  const vis = I.filter(i => ids.has(i.departamento_id));
+  let h = `<div class="top"><div class="big">${pct(vis)}%</div>${resumo(vis)}</div>`;
+  if (!I.length) h += `<p class="sub">Nenhum item nesta competência.</p>`;
+  for (const e of E) {
+    const deps = dep.filter(d => d.empresa_id===e.id).sort((a,b) => (a.prazo_dia||99)-(b.prazo_dia||99) || a.numero-b.numero);
+    if (!deps.length) continue;
+    const doEmp = vis.filter(i => deps.some(d => d.id===i.departamento_id));
+    let corpo = "";
+    for (const d of deps) {
+      const doDep = I.filter(i => i.departamento_id===d.id);
+      if (onlyP && doDep.every(i => i.conferido)) continue;
+      const lista = onlyP ? doDep.filter(i => !i.conferido) : doDep;
+      let c = lista.filter(i => !i.centro_custo_id).map(itemHtml).join("");
+      for (const cc of C.filter(x => x.departamento_id===d.id)) {
+        const doCC = doDep.filter(i => i.centro_custo_id===cc.id), vcc = lista.filter(i => i.centro_custo_id===cc.id);
+        if (!doCC.length || (onlyP && !vcc.length)) continue;
+        c += `<div class="cc">${bloco("c"+cc.id, cc.nome, doCC, vcc.map(itemHtml).join(""), "cci")}</div>`;
+      }
+      corpo += bloco("d"+d.id, `DPTO ${d.numero} · ${d.nome}`, doDep, c || `<p class="sub">Nada pendente.</p>`, "dep", tags(d, doDep.length-feitos(doDep)));
+    }
+    h += bloco("e"+e.id, e.nome, doEmp, corpo || `<p class="sub">Nada pendente.</p>`, "emp");
+  }
+  $("app").innerHTML = h;
+  $("nome").textContent = nome ? "Você é: " + nome + " (trocar)" : "Informar meu nome";
+}
+async function carregarItens(){
+  try { I = await todos("itens", q => q.eq("competencia", comp)); $("msg").textContent=""; render(); }
+  catch(e){ $("msg").textContent = "Não foi possível carregar os dados. Verifique a conexão e tente de novo."; }
+}
+async function iniciar(){
+  try {
+    [E,D,C,CP] = await Promise.all([todos("empresas"), todos("departamentos"), todos("centros_custo"), todos("competencias")]);
+  } catch(e){ $("msg").textContent = "Não foi possível carregar os dados. Verifique a URL e a chave no arquivo."; return; }
+  const nomes = CP.map(c => c.nome).reverse();
+  $("comp").innerHTML = nomes.map(n => `<option>${esc(n)}</option>`).join("");
+  comp = nomes.includes(mesAtual) ? mesAtual : (nomes[0] || ""); $("comp").value = comp;
+  const fs = [...new Set(D.map(d => d.filial).filter(Boolean))].sort();
+  $("filial").innerHTML = `<option value="">Todas as filiais</option>` + fs.map(f => `<option>${esc(f)}</option>`).join("");
+  await carregarItens();
+}
+function pedirNome(){
+  const n = (prompt("Seu nome (aparece junto das conferências):", nome) || "").trim();
+  if (n) { nome = n; try { localStorage.setItem("nome", n); } catch(e) {} }
+  render(); return nome;
+}
+document.addEventListener("click", ev => {
+  const row = ev.target.closest("[data-k]");
+  if (row) { const k = row.dataset.k; aberto.has(k) ? aberto.delete(k) : aberto.add(k); render(); }
+});
+document.addEventListener("change", async ev => {
+  const t = ev.target;
+  if (t.id==="onlyp") { onlyP = t.checked; render(); return; }
+  if (t.id==="comp") { comp = t.value; carregarItens(); return; }
+  if (t.id==="filial") { fil = t.value; render(); return; }
+  if (!t.dataset.id) return;
+  if (!nome && !pedirNome()) { t.checked = !t.checked; return; }
+  const it = I.find(x => x.id == t.dataset.id);
+  Object.assign(it, { conferido: t.checked, conferido_por: nome, conferido_em: new Date().toISOString() });
+  render();
+  const {error} = await sb.from("itens").update({conferido: it.conferido, conferido_por: nome, conferido_em: it.conferido_em}).eq("id", it.id);
+  if (error) { $("msg").textContent = "Não foi possível salvar a marcação. Tente de novo."; carregarItens(); }
+});
+$("busca").addEventListener("input", e => { busca = e.target.value; render(); });
+$("nome").addEventListener("click", pedirNome);
+iniciar();
+sb.channel("itens-ao-vivo").on("postgres_changes", {event:"UPDATE", schema:"public", table:"itens"}, p => {
+  if (p.new.competencia !== comp) return;
+  const k = I.findIndex(x => x.id === p.new.id); if (k >= 0) { I[k] = p.new; render(); }
+}).subscribe();
+setInterval(() => { if (comp) carregarItens(); }, 120000);
+</script>
+</body>
+</html>
