@@ -100,12 +100,26 @@ function resumo(a){
   const f = feitos(a), p = a.length - f;
   return `<div class="bar"><i style="width:${pct(a)}%"></i></div><div class="sub">${f} de ${a.length} conferidos · <span class="pend">${p} pendentes</span></div>`;
 }
-function itemHtml(i){
-  const q = i.conferido_em ? new Date(i.conferido_em).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}) : "";
-  const meta = [i.responsavel, i.observacao].filter(Boolean).map(esc).join(" · ");
-  const quem = i.conferido ? `Conferido por ${esc(i.conferido_por || "alguém")} em ${q}` : "";
-  return `<label class="item ${i.conferido ? "done" : ""}"><input type="checkbox" data-id="${i.id}" ${i.conferido ? "checked" : ""}>
-    <span><span class="d">${esc(i.descricao)}</span>${meta ? `<span class="who">${meta}</span>` : ""}${quem ? `<span class="who">${quem}</span>` : ""}</span></label>`;
+ const q = i.conferido_em
+    ? new Date(i.conferido_em).toLocaleString("pt-BR", {
+        day: "2-digit",
+        month: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit"
+      })
+    : "";
+
+  const quem = i.conferido
+    ? `Conferido por ${esc(i.conferido_por || "alguém")} em ${q}`
+    : "";
+
+  return `<label class="item ${i.conferido ? "done" : ""}">
+    <input type="checkbox" data-id="${i.id}" ${i.conferido ? "checked" : ""}>
+    <span>
+      <span class="d">${esc(i.descricao)}</span>
+      ${quem ? `<span class="who">${quem}</span>` : ""}
+    </span>
+  </label>`;
 }
 function bloco(key, titulo, arr, corpo, cls, extra){
   const ab = aberto.has(key);
