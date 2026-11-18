@@ -111,15 +111,9 @@ function bloco(key, titulo, arr, corpo, cls, extra){
   const ab = aberto.has(key);
   return `<div class="${cls}"><div class="row" data-k="${key}"><div style="flex:1"><b>${esc(titulo)}</b>${extra||""}${resumo(arr)}</div><span class="pct">${pct(arr)}%</span></div>${ab ? `<div class="in">${corpo}</div>` : ""}</div>`;
 }
-function tags(d, pend){
-  let t = "";
-  if (d.prazo_dia) { const atras = comp===mesAtual && pend>0 && hoje.getDate()>d.prazo_dia; t += `<span class="tag ${atras?"r":""}">${atras?"Atrasado · ":""}Enviar até o dia ${d.prazo_dia}</span>`; }
-  if (d.filial) t += `<span class="tag">${esc(d.filial)}</span>`;
-  if (d.prioridade) t += `<span class="tag w">Prioridade</span>`;
-  if (d.interfere_faturamento) t += `<span class="tag w">Interfere no faturamento</span>`;
-  if (d.va_dinheiro) t += `<span class="tag">VA em dinheiro</span>`;
-  if (d.como_enviar) t += `<span class="tag">${esc(d.como_enviar)}</span>`;
-  return `<div class="tags">${t}</div>`;
+function tags(d, pend) {
+  if (!d.filial) return "";
+  return `<div class="tags"><span class="tag">${esc(d.filial)}</span></div>`;
 }
 function render(){
   const q = busca.trim().toLowerCase();
@@ -129,7 +123,7 @@ function render(){
   let h = `<div class="top"><div class="big">${pct(vis)}%</div>${resumo(vis)}</div>`;
   if (!I.length) h += `<p class="sub">Nenhum item nesta competência.</p>`;
   for (const e of E) {
-    const deps = dep.filter(d => d.empresa_id===e.id).sort((a,b) => (a.prazo_dia||99)-(b.prazo_dia||99) || a.numero-b.numero);
+    const deps = dep.filter(d => d.empresa_id===e.id)..sort((a,b) => Number(a.numero)-Number(b.numero))
     if (!deps.length) continue;
     const doEmp = vis.filter(i => deps.some(d => d.id===i.departamento_id));
     let corpo = "";
