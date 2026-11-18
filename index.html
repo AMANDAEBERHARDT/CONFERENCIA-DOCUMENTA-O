@@ -146,7 +146,12 @@ function render(){
       if (onlyP && doDep.every(i => i.conferido)) continue;
       const lista = onlyP ? doDep.filter(i => !i.conferido) : doDep;
       let c = lista.filter(i => !i.centro_custo_id).map(itemHtml).join("");
-      for (const cc of C.filter(x => x.departamento_id===d.id)) {
+      for (const cc of C
+  .filter(x => x.departamento_id === d.id)
+  .sort((a, b) =>
+    Number(String(a.nome).match(/\d+/)?.[0] || 0) -
+    Number(String(b.nome).match(/\d+/)?.[0] || 0)
+  )) {
         const doCC = doDep.filter(i => i.centro_custo_id===cc.id), vcc = lista.filter(i => i.centro_custo_id===cc.id);
         if (!doCC.length || (onlyP && !vcc.length)) continue;
         c += `<div class="cc">${bloco("c"+cc.id, cc.nome, doCC, vcc.map(itemHtml).join(""), "cci")}</div>`;
