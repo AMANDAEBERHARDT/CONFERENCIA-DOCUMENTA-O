@@ -40,11 +40,29 @@ select,input[type=search],.btn{font:inherit;color:var(--tx);background:var(--car
 label.f{display:flex;gap:8px;align-items:center}
 #msg{color:var(--bad);margin:8px 0}
 :focus-visible{outline:3px solid var(--ok);outline-offset:2px}
+  .cabecalho {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+.logo {
+  width: 190px;
+  max-width: 100%;
+  height: auto;
+}
+.cabecalho h1 {
+  margin: 0;
+}
 </style>
 </head>
 <body>
 <main>
-<h1>Conferência de documentação</h1>
+<header class="cabecalho">
+  <img src="logo-terceirize.png" alt="Terceirize" class="logo">
+  <h1>Conferência de documentação</h1>
+</header>
 <div id="msg"></div>
 <div class="tools">
   <select id="comp" aria-label="Competência"></select>
