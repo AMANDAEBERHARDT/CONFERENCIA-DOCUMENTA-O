@@ -123,7 +123,7 @@ function render(){
   let h = `<div class="top"><div class="big">${pct(vis)}%</div>${resumo(vis)}</div>`;
   if (!I.length) h += `<p class="sub">Nenhum item nesta competência.</p>`;
   for (const e of E) {
-    const deps = dep.filter(d => d.empresa_id===e.id)..sort((a,b) => Number(a.numero)-Number(b.numero))
+  const deps = dep.filter(d => d.empresa_id===e.id).sort((a,b) => Number(a.numero)-Number(b.numero));
     if (!deps.length) continue;
     const doEmp = vis.filter(i => deps.some(d => d.id===i.departamento_id));
     let corpo = "";
