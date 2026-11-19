@@ -100,7 +100,8 @@ function resumo(a){
   const f = feitos(a), p = a.length - f;
   return `<div class="bar"><i style="width:${pct(a)}%"></i></div><div class="sub">${f} de ${a.length} conferidos · <span class="pend">${p} pendentes</span></div>`;
 }
- const q = i.conferido_em
+function itemHtml(i) {
+  const q = i.conferido_em
     ? new Date(i.conferido_em).toLocaleString("pt-BR", {
         day: "2-digit",
         month: "2-digit",
