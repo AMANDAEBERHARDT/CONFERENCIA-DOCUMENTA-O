@@ -130,6 +130,41 @@ function tags(d, pend) {
   if (!d.filial) return "";
   return `<div class="tags"><span class="tag">${esc(d.filial)}</span></div>`;
 }
+  const ORDEM_DOCUMENTOS = [
+  "ADMISSÃO",
+  "FÉRIAS",
+  "CARTÃO PONTO",
+  "RESCISÃO",
+  "PROTOCOLO DE RESCISÃO",
+  "EXTRATO",
+  "FICHA DE EPI"
+];
+
+function ordenarItens(itens) {
+  function prioridade(item) {
+    const nome = item.descricao
+      .trim()
+      .toUpperCase();
+
+    const indice = ORDEM_DOCUMENTOS.findIndex(
+      doc => nome === doc ||
+        nome.startsWith(doc + " ") ||
+        nome.startsWith(doc + " -") ||
+        nome.startsWith(doc + " (")
+    );
+
+    return indice === -1
+      ? ORDEM_DOCUMENTOS.length
+      : indice;
+  }
+
+  return [...itens].sort((a, b) =>
+    prioridade(a) - prioridade(b) ||
+    a.descricao.localeCompare(
+      b.descricao, "pt-BR"
+    )
+  );
+}
 function render(){
   const q = busca.trim().toLowerCase();
   const dep = D.filter(d => (!fil || d.filial===fil) && (!q || String(d.numero).includes(q) || d.nome.toLowerCase().includes(q)));
@@ -146,7 +181,7 @@ function render(){
       const doDep = I.filter(i => i.departamento_id===d.id);
       if (onlyP && doDep.every(i => i.conferido)) continue;
       const lista = onlyP ? doDep.filter(i => !i.conferido) : doDep;
-      let c = lista.filter(i => !i.centro_custo_id).map(itemHtml).join("");
+      let c = ordenarItens(lista.filter(i => !i.centro_custo_id)).map(itemHtml).join("");
       for (const cc of C
   .filter(x => x.departamento_id === d.id)
   .sort((a, b) =>
@@ -155,7 +190,7 @@ function render(){
   )) {
         const doCC = doDep.filter(i => i.centro_custo_id===cc.id), vcc = lista.filter(i => i.centro_custo_id===cc.id);
         if (!doCC.length || (onlyP && !vcc.length)) continue;
-        c += `<div class="cc">${bloco("c"+cc.id, cc.nome, doCC, vcc.map(itemHtml).join(""), "cci")}</div>`;
+        c += `<div class="cc">${bloco("c"+cc.id, cc.nome, doCC, ordenarItens(vcc).map(itemHtml).join(""), "cci")}</div>`;
       }
       corpo += bloco("d"+d.id, `DPTO ${d.numero} · ${d.nome}`, doDep, c || `<p class="sub">Nada pendente.</p>`, "dep", tags(d, doDep.length-feitos(doDep)));
     }
